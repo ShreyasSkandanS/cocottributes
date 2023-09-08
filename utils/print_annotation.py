@@ -5,7 +5,7 @@ import json
 import os
 import requests
 
-from sklearn.externals import joblib
+import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -27,7 +27,7 @@ def print_coco_attributes_instance(cocottributes, coco_data, ex_ind, sname):
     attr_names = [item['name'] for item in attr_details]
 
     # COCO Attributes instance ID for this example
-    coco_attr_id = cocottributes['ann_vecs'].keys()[ex_ind]
+    coco_attr_id = list(cocottributes['ann_vecs'].keys())[ex_ind]
 
     # COCO Attribute annotation vector, attributes in order sorted by dataset ID
     instance_attrs = cocottributes['ann_vecs'][coco_attr_id]
@@ -38,9 +38,8 @@ def print_coco_attributes_instance(cocottributes, coco_data, ex_ind, sname):
 
     coco_annotation = [ann for ann in coco_data['annotations'] if ann['id'] == coco_dataset_ann_id][0]
 
-    img_url = 'http://mscoco.org/images/{}'.format(coco_annotation['image_id'])
-    response = requests.get(img_url)
-    img = Image.open(BytesIO(response.content))
+    img_uri = '/tmp/data/COCO_DATASET_ROOT/train2017/{:012d}.jpg'.format(coco_annotation['image_id'])
+    img = Image.open(img_uri)
     polygon = coco_annotation['segmentation'][0]
     ImageDraw.Draw(img, 'RGBA').polygon(polygon, outline=(255,0,0), fill=(255,0,0,50))
     img = np.array(img)
@@ -50,12 +49,12 @@ def print_coco_attributes_instance(cocottributes, coco_data, ex_ind, sname):
 
 
 # Load COCO Dataset
-data_types = ['val2014', 'train2014']
+data_types = ['val2017', 'train2017']
 coco_data = {}
 # Change this to location where COCO dataset lives
-coco_dataset_dir = '~/coco/'
+coco_dataset_dir = '/tmp/data/COCO_DATASET_ROOT/'
 for dt in data_types:
-    annFile=os.path.join(coco_dataset_dir, 'instances_%s.json'%(dt))
+    annFile=os.path.join(coco_dataset_dir, 'annotations/instances_%s.json'%(dt))
 
     with open(annFile, 'r') as f:
         tmp = json.load(f)
@@ -66,7 +65,9 @@ for dt in data_types:
             coco_data['annotations'] += tmp['annotations']
 
 # Load COCO Attributes 
-cocottributes = joblib.load('cocottributes_eccv_version.jbl')
+cocottributes_path = '/tmp/data/COCO_DATASET_ROOT/cocottributes_eccv_version.pkl'
+with open(cocottributes_path, 'rb') as fid:
+    cocottributes = pickle.load(fid, encoding='latin1')
 
 # Index of example instance to print
 ex_inds = [0,10,50,100,500,1000,5000,10000]
